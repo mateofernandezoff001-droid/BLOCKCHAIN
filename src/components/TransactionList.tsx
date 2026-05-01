@@ -1,20 +1,22 @@
 import { Transaction } from '../types';
-import { Mail, Wallet, ExternalLink, Calendar, Hash } from 'lucide-react';
+import { Mail, Wallet, ExternalLink, Calendar, Hash, Download, FileText, Edit3 } from 'lucide-react';
+import { generateStatementPDF } from '../utils/pdfGenerator';
 
 interface Props {
   transactions: Transaction[];
+  onEdit?: (transaction: Transaction) => void;
 }
 
-export default function TransactionList({ transactions }: Props) {
+export default function TransactionList({ transactions, onEdit }: Props) {
   if (transactions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-20 text-center">
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl mb-6 shadow-2xl">
           <Hash className="w-12 h-12 text-slate-700" />
         </div>
-        <h3 className="text-xl font-black text-white italic tracking-tighter uppercase">No Records detected</h3>
+        <h3 className="text-xl font-black text-white italic tracking-tighter uppercase">No se detectaron registros</h3>
         <p className="text-slate-500 max-w-xs mx-auto mt-3 text-xs font-bold leading-relaxed uppercase tracking-widest">
-          The distributed ledger is currently empty. Initiate a transaction to begin synchronization.
+          El libro mayor distribuido está vacío actualmente. Inicie una transacción para comenzar la sincronización.
         </p>
       </div>
     );
@@ -25,11 +27,12 @@ export default function TransactionList({ transactions }: Props) {
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b border-slate-800">
-            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Authorized Entity</th>
-            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Valuation</th>
-            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Asset Volume</th>
-            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Public Key</th>
-            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Timestamp</th>
+            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Entidad Autorizada</th>
+            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Valoración Total</th>
+            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Volumen de Activos</th>
+            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Clave Pública</th>
+            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Movimientos</th>
+            <th className="py-5 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Acciones</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-800/50">
@@ -75,11 +78,38 @@ export default function TransactionList({ transactions }: Props) {
                 </div>
               </td>
               <td className="py-5 px-4">
-                <div className="flex items-center gap-2 text-slate-500 font-mono">
-                  <Calendar size={12} className="text-slate-700" />
-                  <span className="text-[10px] uppercase font-bold tracking-tighter">
-                    {new Date(t.timestamp).toLocaleDateString()}
-                  </span>
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 text-slate-500 font-mono">
+                    <Calendar size={12} className="text-slate-700" />
+                    <span className="text-[10px] uppercase font-bold tracking-tighter">
+                      {t.movements?.length || 1} Fechas
+                    </span>
+                  </div>
+                  <div className="text-[9px] text-slate-600 uppercase font-bold">
+                    Último: {new Date(t.timestamp).toLocaleDateString()}
+                  </div>
+                </div>
+              </td>
+              <td className="py-5 px-4">
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => generateStatementPDF(t)}
+                    className="flex items-center gap-2 bg-slate-900 border border-slate-800 hover:border-cyan-500/50 text-slate-400 hover:text-cyan-400 px-3 py-2 rounded-lg transition-all active:scale-95 group/btn"
+                    title="Descargar Extracto"
+                  >
+                    <FileText size={14} className="group-hover/btn:scale-110 transition-transform" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Extracto</span>
+                    <Download size={12} className="opacity-50" />
+                  </button>
+                  {onEdit && (
+                    <button 
+                      onClick={() => onEdit(t)}
+                      className="p-2 bg-slate-900 border border-slate-800 hover:border-amber-500/50 text-slate-500 hover:text-amber-400 rounded-lg transition-all"
+                      title="Editar"
+                    >
+                      <Edit3 size={14} />
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>
@@ -89,3 +119,4 @@ export default function TransactionList({ transactions }: Props) {
     </div>
   );
 }
+

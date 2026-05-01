@@ -1,3 +1,9 @@
+export interface TransactionMovement {
+  date: string;
+  amountUSD: number;
+  amountEUR: number;
+}
+
 export interface Transaction {
   id?: string;
   userId: string;
@@ -10,6 +16,7 @@ export interface Transaction {
   cryptoSymbol: string;
   cryptoAmount: number;
   timestamp: string;
+  movements: TransactionMovement[];
 }
 
 export interface CryptoPrice {

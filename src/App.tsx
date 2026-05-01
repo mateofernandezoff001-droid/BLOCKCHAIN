@@ -23,6 +23,7 @@ export default function App() {
   const [cryptos, setCryptos] = useState<CryptoPrice[]>([]);
   const [exchangeRate, setExchangeRate] = useState(0.92);
   const [view, setView] = useState<'dashboard' | 'form' | 'history'>('dashboard');
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
   // Login form state
   const [username, setUsername] = useState('');
@@ -39,7 +40,22 @@ export default function App() {
     // Load local transactions
     const savedTransactions = localStorage.getItem('blockchain_transactions');
     if (savedTransactions) {
-      setTransactions(JSON.parse(savedTransactions));
+      try {
+        const parsed = JSON.parse(savedTransactions);
+        const sanitized = parsed.map((t: any) => ({
+          ...t,
+          movements: t.movements && t.movements.length > 0 
+            ? t.movements 
+            : [{ 
+                date: new Date(t.timestamp || Date.now()).toISOString().split('T')[0], 
+                amountUSD: t.amountUSD, 
+                amountEUR: t.amountEUR 
+              }]
+        }));
+        setTransactions(sanitized);
+      } catch (e) {
+        console.error("Failed to parse transactions", e);
+      }
     }
 
     const initData = async () => {
@@ -70,17 +86,33 @@ export default function App() {
   };
 
   const addTransaction = (data: Omit<Transaction, 'userId' | 'timestamp'>) => {
-    const newTransaction: Transaction = {
-      ...data,
-      id: Date.now().toString(),
-      userId: 'mateo-id',
-      timestamp: new Date().toISOString()
-    };
+    let updatedTransactions;
     
-    const updatedTransactions = [newTransaction, ...transactions];
+    if (editingTransaction && editingTransaction.id) {
+      // Update existing
+      updatedTransactions = transactions.map(t => 
+        t.id === editingTransaction.id ? { ...t, ...data, timestamp: new Date().toISOString() } : t
+      );
+    } else {
+      // Create new
+      const newTransaction: Transaction = {
+        ...data,
+        id: Date.now().toString(),
+        userId: 'mateo-id',
+        timestamp: new Date().toISOString()
+      };
+      updatedTransactions = [newTransaction, ...transactions];
+    }
+    
     setTransactions(updatedTransactions);
     localStorage.setItem('blockchain_transactions', JSON.stringify(updatedTransactions));
+    setEditingTransaction(null);
     setView('dashboard');
+  };
+
+  const startEdit = (transaction: Transaction) => {
+    setEditingTransaction(transaction);
+    setView('form');
   };
 
   if (loading) {
@@ -298,7 +330,16 @@ export default function App() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.98 }}
               >
-                <TransactionForm cryptos={cryptos} exchangeRate={exchangeRate} onSubmit={addTransaction} />
+                <TransactionForm 
+                  cryptos={cryptos} 
+                  exchangeRate={exchangeRate} 
+                  onSubmit={addTransaction}
+                  initialData={editingTransaction || undefined}
+                  onCancel={() => {
+                    setEditingTransaction(null);
+                    setView('dashboard');
+                  }}
+                />
               </motion.div>
             )}
 
@@ -323,7 +364,7 @@ export default function App() {
                     Export Ledger
                   </button>
                 </div>
-                <TransactionList transactions={transactions} />
+                <TransactionList transactions={transactions} onEdit={startEdit} />
               </motion.div>
             )}
           </AnimatePresence>
