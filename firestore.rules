@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Transaction Validation
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['userId', 'firstName', 'lastName', 'email', 'walletAddress', 'amountUSD', 'amountEUR', 'cryptoSymbol', 'cryptoAmount', 'timestamp'])
+        && data.keys().size() == 10
+        && data.userId == request.auth.uid
+        && data.firstName is string && data.firstName.size() <= 100
+        && data.lastName is string && data.lastName.size() <= 100
+        && data.email is string && data.email.size() <= 200 && data.email.matches('^[^@]+@[^@]+\\.[^@]+$')
+        && data.walletAddress is string && data.walletAddress.size() <= 100
+        && data.amountUSD is number && data.amountUSD >= 0
+        && data.amountEUR is number && data.amountEUR >= 0
+        && data.cryptoSymbol is string && data.cryptoSymbol.size() <= 20
+        && data.cryptoAmount is number && data.cryptoAmount >= 0
+        && data.timestamp is string; // Using string as per blueprint, but could be timestamp
+    }
+
+    match /transactions/{transactionId} {
+      allow create: if isSignedIn() 
+        && isValidId(transactionId) 
+        && isValidTransaction(incoming());
+      
+      allow read: if isSignedIn() 
+        && isOwner(existing().userId);
+      
+      allow list: if isSignedIn() 
+        && resource.data.userId == request.auth.uid;
+
+      allow update: if isSignedIn() 
+        && isOwner(existing().userId)
+        && isValidTransaction(incoming())
+        && incoming().userId == existing().userId; // Immutable owner
+
+      allow delete: if isSignedIn() 
+        && isOwner(existing().userId);
+    }
+  }
+}

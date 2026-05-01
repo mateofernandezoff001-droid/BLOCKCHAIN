@@ -1,0 +1,28 @@
+{
+  "entities": {
+    "Transaction": {
+      "title": "Transaction",
+      "description": "A record of a cryptocurrency transaction",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "The UID of the user who created it" },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "walletAddress": { "type": "string" },
+        "amountUSD": { "type": "number" },
+        "amountEUR": { "type": "number" },
+        "cryptoSymbol": { "type": "string" },
+        "cryptoAmount": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "firstName", "lastName", "email", "walletAddress", "amountUSD", "amountEUR", "cryptoSymbol", "cryptoAmount", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Collection of crypto transactions"
+    }
+  }
+}
